@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: logapp-postgres
+    environment:
+      POSTGRES_DB: logapp_db
+      POSTGRES_USER: logapp_user
+      POSTGRES_PASSWORD: logapp_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logapp_user -d logapp_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: logapp-backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://logapp_user:logapp_password@postgres:5432/logapp_db
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PORT: 3001
+      CLIENT_URL: http://localhost:3000
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./server/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend Next.js App
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: logapp-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
