@@ -8,6 +8,9 @@ yarn-error.log*
 .env
 .env.local
 .env.development.local
+
+# Reference files
+reference.md
 .env.test.local
 .env.production.local
 
@@ -131,3 +134,4 @@ temp/
 test-logs.json
 test-logs.jsonl
 test-logs.*
+
