@@ -1,0 +1,83 @@
+# Git and version control
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+reference.md
+*.md
+
+# Development and testing files
+test-logs.json
+test-logs.jsonl
+sample-logs/
+
+# Docker files (don't need these inside containers)
+docker-compose.yml
+.dockerignore
+Dockerfile
+
+# Package management
+server/package-lock.json
+client/package-lock.json
+yarn.lock
+
+# Logs (since you're mounting logs as volumes)
+logs/
+*.log
+
+# Uploads (since you're mounting uploads as volumes)
+server/uploads/
+client/uploads/
+
+# Environment files
+.env*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage and testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Build artifacts (for both client and server)
+dist/
+build/
+.next/
+out/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+.npm/
+.yarn/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Setup scripts
+setup.sh
