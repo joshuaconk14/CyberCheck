@@ -22,7 +22,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Shield className="h-8 w-8 text-primary-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">LogApp</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">CyberCheck</span>
             </div>
             
             <div className="flex items-center space-x-4">

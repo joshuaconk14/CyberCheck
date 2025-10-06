@@ -6,7 +6,7 @@ import { AuthProvider } from '@/components/AuthProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'LogApp - Cybersecurity Log Analysis',
+  title: 'CyberCheck - Cybersecurity Log Analysis',
   description: 'AI-powered log analysis platform for cybersecurity professionals',
   keywords: ['cybersecurity', 'log analysis', 'anomaly detection', 'cloudflare', 'threat detection'],
   authors: [{ name: 'Joshua' }],

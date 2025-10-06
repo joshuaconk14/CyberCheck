@@ -35,7 +35,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Shield className="h-8 w-8 text-primary-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">LogApp</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">CyberCheck</span>
             </div>
             <div className="flex space-x-4">
               <button
@@ -168,7 +168,7 @@ export default function HomePage() {
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2024 LogApp. Built with Next.js, Node.js, and OpenAI.</p>
+            <p>&copy; 2024 CyberCheck. Built with Next.js, Node.js, and OpenAI.</p>
           </div>
         </div>
       </footer>

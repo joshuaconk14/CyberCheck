@@ -4,18 +4,18 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: logapp-postgres
+    container_name: cybercheck-postgres
     environment:
-      POSTGRES_DB: logapp_db
-      POSTGRES_USER: logapp_user
-      POSTGRES_PASSWORD: logapp_password
+      POSTGRES_DB: cybercheck_db
+      POSTGRES_USER: cybercheck_user
+      POSTGRES_PASSWORD: cybercheck_password
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U logapp_user -d logapp_db"]
+      test: ["CMD-SHELL", "pg_isready -U cybercheck_user -d cybercheck_db"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -25,12 +25,12 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: logapp-backend
+    container_name: cybercheck-backend
     env_file:
       - ./.env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://logapp_user:logapp_password@postgres:5432/logapp_db
+      DATABASE_URL: postgresql://cybercheck_user:cybercheck_password@postgres:5432/cybercheck_db
       PORT: 3001
       CLIENT_URL: http://localhost:3000
     ports:
@@ -48,7 +48,7 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile.dev
-    container_name: logapp-frontend
+    container_name: cybercheck-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
       NODE_ENV: development

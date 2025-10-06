@@ -1,4 +1,4 @@
-# LogApp - AI-Powered Cybersecurity Log Analysis Platform
+# CyberCheck - AI-Powered Cybersecurity Log Analysis Platform
 
 A full-stack web application for analyzing cybersecurity logs with AI-powered anomaly detection and threat identification. Built with Next.js, Node.js, PostgreSQL, and OpenAI GPT models.
 
@@ -62,8 +62,8 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd LogApp_TenexAI
+   git clone https://github.com/joshuaconk14/CyberCheck.git
+   cd CyberCheck
    ```
 
 2. **Set up environment variables**
@@ -74,7 +74,7 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
    Edit `.env` and add your configuration:
    ```env
    # Database
-   DATABASE_URL=postgresql://logapp_user:logapp_password@postgres:5432/logapp_db
+   DATABASE_URL=postgresql://cybercheck_user:cybercheck_password@postgres:5432/cybercheck_db
    
    # Authentication
    JWT_SECRET=your-super-secret-jwt-key-here
@@ -107,7 +107,7 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 
 2. **Set up PostgreSQL database**
    ```bash
-   createdb logapp_db
+   createdb cybercheck_db
    ```
 
 3. **Configure environment variables**
@@ -209,7 +209,7 @@ The application uses a two-stage analysis approach:
 ## 📁 Project Structure
 
 ```
-LogApp_TenexAI/
+CyberCheck/
 ├── client/                 # Next.js frontend
 │   ├── app/               # App router pages
 │   ├── components/        # React components
@@ -232,7 +232,7 @@ LogApp_TenexAI/
 
 **Backend** (`.env` in root directory):
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/logapp_db
+   DATABASE_URL=postgresql://user:password@localhost:5432/cybercheck_db
 JWT_SECRET=your-super-secret-jwt-key
 OPENAI_API_KEY=your-openai-api-key
 PORT=3001

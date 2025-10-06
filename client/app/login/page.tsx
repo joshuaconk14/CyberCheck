@@ -44,7 +44,7 @@ export default function LoginPage() {
             <Shield className="h-12 w-12 text-primary-600" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to LogApp
+            Sign in to CyberCheck
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}

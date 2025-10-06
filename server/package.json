@@ -1,7 +1,7 @@
 {
-  "name": "logapp-server",
+  "name": "cybercheck-server",
   "version": "1.0.0",
-  "description": "Backend API for Log Analysis Application",
+  "description": "Backend API for CyberCheck - Cybersecurity Log Analysis Application",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
