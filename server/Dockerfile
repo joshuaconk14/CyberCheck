@@ -4,13 +4,13 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY server/package*.json ./
 
 # Install dependencies
 RUN npm install --omit=dev --no-audit --no-fund
 
 # Copy source code
-COPY . .
+COPY server/ .
 
 # Create necessary directories
 RUN mkdir -p uploads logs
