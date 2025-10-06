@@ -25,7 +25,7 @@ RUN chown -R nodejs:nodejs /app
 # Switch to non-root user
 USER nodejs
 
-# Expose port
+# Expose port (Railway will override this)
 EXPOSE 3001
 
 # Health check
