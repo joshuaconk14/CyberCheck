@@ -26,11 +26,11 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: logapp-backend
+    env_file:
+      - ./.env
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://logapp_user:logapp_password@postgres:5432/logapp_db
-      JWT_SECRET: your-super-secret-jwt-key-change-in-production
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
       PORT: 3001
       CLIENT_URL: http://localhost:3000
     ports:
@@ -43,16 +43,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Frontend Next.js App
+  # Frontend Next.js App (Development Mode)
   frontend:
     build:
       context: ./client
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: logapp-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
+      NODE_ENV: development
     ports:
       - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - backend
     restart: unless-stopped

@@ -69,14 +69,16 @@ router.post('/analyze/:fileId', async (req, res) => {
     // Save analysis session to database
     const analysisSession = await pool.query(
       `INSERT INTO analysis_sessions (
-        log_file_id, user_id, summary, total_entries, anomaly_count, 
-        time_range_start, time_range_end
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        log_file_id, user_id, summary, recommendations, confidence, 
+        total_entries, anomaly_count, time_range_start, time_range_end
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
       RETURNING id`,
       [
         fileId,
         userId,
         analysisResult.summary,
+        JSON.stringify(analysisResult.recommendations || []),
+        analysisResult.confidence || 0.8,
         entries.length,
         analysisResult.anomalies.length,
         entries.length > 0 ? entries[0].timestamp : null,
@@ -89,22 +91,101 @@ router.post('/analyze/:fileId', async (req, res) => {
     // Update log entries with anomaly information
     if (analysisResult.anomalies.length > 0) {
       const updatePromises = analysisResult.anomalies.map(async (anomaly) => {
-        // Find matching entries and mark them as anomalies
-        const affectedIPs = anomaly.affected_ips || [anomaly.ip];
+        let updateQuery = '';
+        let updateParams = [];
         
-        for (const ip of affectedIPs) {
-          if (ip && anomaly.type === 'high_frequency_ip') {
-            await pool.query(
-              `UPDATE log_entries 
-               SET is_anomaly = true, anomaly_score = $1, anomaly_reason = $2
-               WHERE log_file_id = $3 AND source_ip = $4`,
-              [anomaly.confidence, anomaly.reason, fileId, ip]
-            );
-          }
+        switch (anomaly.type) {
+          case 'high_frequency_ip':
+            const affectedIPs = anomaly.affected_ips || [anomaly.ip];
+            for (const ip of affectedIPs) {
+              if (ip) {
+                await pool.query(
+                  `UPDATE log_entries 
+                   SET is_anomaly = true, anomaly_score = $1, anomaly_reason = $2
+                   WHERE log_file_id = $3 AND source_ip = $4`,
+                  [anomaly.confidence, anomaly.reason, fileId, ip]
+                );
+              }
+            }
+            break;
+            
+          case 'suspicious_user_agent':
+            if (anomaly.user_agent) {
+              await pool.query(
+                `UPDATE log_entries 
+                 SET is_anomaly = true, anomaly_score = $1, anomaly_reason = $2
+                 WHERE log_file_id = $3 AND user_agent = $4`,
+                [anomaly.confidence, anomaly.reason, fileId, anomaly.user_agent]
+              );
+            }
+            break;
+            
+          case 'unusual_status_code':
+            if (anomaly.status_code) {
+              await pool.query(
+                `UPDATE log_entries 
+                 SET is_anomaly = true, anomaly_score = $1, anomaly_reason = $2
+                 WHERE log_file_id = $3 AND status_code = $4`,
+                [anomaly.confidence, anomaly.reason, fileId, anomaly.status_code]
+              );
+            }
+            break;
+            
+          case 'brute_force_attack':
+            if (anomaly.ip) {
+              await pool.query(
+                `UPDATE log_entries 
+                 SET is_anomaly = true, anomaly_score = $1, anomaly_reason = $2
+                 WHERE log_file_id = $3 AND source_ip = $4`,
+                [anomaly.confidence, anomaly.reason, fileId, anomaly.ip]
+              );
+            }
+            break;
+            
+          default:
+            // For other anomaly types, try to match by IP if available
+            if (anomaly.ip) {
+              await pool.query(
+                `UPDATE log_entries 
+                 SET is_anomaly = true, anomaly_score = $1, anomaly_reason = $2
+                 WHERE log_file_id = $3 AND source_ip = $4`,
+                [anomaly.confidence, anomaly.reason, fileId, anomaly.ip]
+              );
+            }
         }
       });
 
       await Promise.all(updatePromises);
+    }
+
+    // Save detailed anomaly analysis to anomaly_details table
+    if (analysisResult.anomalies.length > 0) {
+      const anomalyDetailPromises = analysisResult.anomalies.map(async (anomaly) => {
+        await pool.query(
+          `INSERT INTO anomaly_details (
+            analysis_session_id, anomaly_type, description, reason, 
+            confidence, severity, affected_ips, metadata
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            sessionId,
+            anomaly.type || 'unknown',
+            anomaly.description || '',
+            anomaly.reason || '',
+            anomaly.confidence || 0.5,
+            anomaly.severity || 'medium',
+            anomaly.affected_ips || [anomaly.ip].filter(Boolean),
+            JSON.stringify({
+              ip: anomaly.ip,
+              user_agent: anomaly.user_agent,
+              status_code: anomaly.status_code,
+              count: anomaly.count,
+              percentage: anomaly.percentage
+            })
+          ]
+        );
+      });
+
+      await Promise.all(anomalyDetailPromises);
     }
 
     logger.info(`Anomaly analysis completed for file ${fileId}: ${analysisResult.anomalies.length} anomalies found`);
@@ -146,15 +227,36 @@ router.get('/results/:fileId', async (req, res) => {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    // Get analysis sessions
+    // Get analysis sessions with detailed anomaly analysis
     const analysisResult = await pool.query(
-      `SELECT * FROM analysis_sessions 
-       WHERE log_file_id = $1 
-       ORDER BY analysis_date DESC`,
+      `SELECT as_sessions.*, 
+              COALESCE(
+                json_agg(
+                  json_build_object(
+                    'id', ad.id,
+                    'type', ad.anomaly_type,
+                    'description', ad.description,
+                    'reason', ad.reason,
+                    'confidence', ad.confidence,
+                    'severity', ad.severity,
+                    'affected_ips', ad.affected_ips,
+                    'metadata', ad.metadata
+                  )
+                ) FILTER (WHERE ad.id IS NOT NULL), 
+                '[]'::json
+              ) as detailed_anomalies
+       FROM analysis_sessions as_sessions
+       LEFT JOIN anomaly_details ad ON as_sessions.id = ad.analysis_session_id
+       WHERE as_sessions.log_file_id = $1 
+       GROUP BY as_sessions.id, as_sessions.log_file_id, as_sessions.user_id, 
+                as_sessions.summary, as_sessions.recommendations, as_sessions.confidence,
+                as_sessions.total_entries, as_sessions.anomaly_count, 
+                as_sessions.time_range_start, as_sessions.time_range_end, as_sessions.analysis_date
+       ORDER BY as_sessions.analysis_date DESC`,
       [fileId]
     );
 
-    // Get anomaly entries
+    // Get anomaly entries (marked log entries)
     const anomalyResult = await pool.query(
       `SELECT timestamp, source_ip, destination_ip, url, user_agent, 
               status_code, bytes_sent, method, anomaly_score, anomaly_reason
@@ -179,7 +281,10 @@ router.get('/results/:fileId', async (req, res) => {
 
     res.json({
       fileId,
-      analyses: analysisResult.rows,
+      analyses: analysisResult.rows.map(row => ({
+        ...row,
+        detailed_anomalies: row.detailed_anomalies || []
+      })),
       anomalies: anomalyResult.rows,
       timeline: timelineResult.rows.map(row => ({
         hour: row.hour,
@@ -298,6 +403,7 @@ router.get('/sessions', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         s.id,
+        s.log_file_id,
         s.summary,
         s.total_entries,
         s.anomaly_count,
@@ -312,6 +418,7 @@ router.get('/sessions', async (req, res) => {
 
     const sessions = result.rows.map(session => ({
       id: session.id,
+      logFileId: session.log_file_id,
       summary: session.summary,
       totalEntries: session.total_entries,
       anomalyCount: session.anomaly_count,

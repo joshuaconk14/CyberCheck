@@ -76,6 +76,8 @@ const initializeTables = async () => {
       log_file_id INTEGER REFERENCES log_files(id) ON DELETE CASCADE,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       summary TEXT,
+      recommendations TEXT,
+      confidence DECIMAL(3,2),
       total_entries INTEGER,
       anomaly_count INTEGER,
       time_range_start TIMESTAMP,
@@ -89,6 +91,31 @@ const initializeTables = async () => {
     await pool.query(createLogFilesTable);
     await pool.query(createLogEntriesTable);
     await pool.query(createAnalysisSessionsTable);
+    
+    // Add new columns to existing analysis_sessions table if they don't exist
+    await pool.query(`
+      ALTER TABLE analysis_sessions 
+      ADD COLUMN IF NOT EXISTS recommendations TEXT,
+      ADD COLUMN IF NOT EXISTS confidence DECIMAL(3,2)
+    `);
+
+    // Create anomaly_details table to store detailed anomaly analysis
+    const createAnomalyDetailsTable = `
+      CREATE TABLE IF NOT EXISTS anomaly_details (
+        id SERIAL PRIMARY KEY,
+        analysis_session_id INTEGER REFERENCES analysis_sessions(id) ON DELETE CASCADE,
+        anomaly_type VARCHAR(100) NOT NULL,
+        description TEXT,
+        reason TEXT,
+        confidence DECIMAL(3,2),
+        severity VARCHAR(20) DEFAULT 'medium',
+        affected_ips TEXT[],
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    
+    await pool.query(createAnomalyDetailsTable);
     logger.info('Database tables initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize database tables:', error);

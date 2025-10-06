@@ -134,10 +134,16 @@ router.get('/', async (req, res) => {
     const pool = getPool();
 
     const result = await pool.query(
-      `SELECT id, filename, original_name, file_size, log_type, upload_date, processing_status
-       FROM log_files 
-       WHERE user_id = $1 
-       ORDER BY upload_date DESC`,
+      `SELECT 
+         lf.id, lf.filename, lf.original_name, lf.file_size, lf.log_type, 
+         lf.upload_date, lf.processing_status,
+         COUNT(le.id) as entry_count,
+         COUNT(CASE WHEN le.is_anomaly = true THEN 1 END) as anomaly_count
+       FROM log_files lf
+       LEFT JOIN log_entries le ON lf.id = le.log_file_id
+       WHERE lf.user_id = $1 
+       GROUP BY lf.id, lf.filename, lf.original_name, lf.file_size, lf.log_type, lf.upload_date, lf.processing_status
+       ORDER BY lf.upload_date DESC`,
       [userId]
     );
 
@@ -148,7 +154,9 @@ router.get('/', async (req, res) => {
       fileSize: file.file_size,
       logType: file.log_type,
       uploadDate: file.upload_date,
-      processingStatus: file.processing_status
+      processingStatus: file.processing_status,
+      entryCount: parseInt(file.entry_count),
+      anomalyCount: parseInt(file.anomaly_count)
     }));
 
     res.json({ files });
@@ -177,13 +185,19 @@ router.get('/:fileId', async (req, res) => {
 
     const file = fileResult.rows[0];
 
-    // Get entry count
+    // Get entry count and anomaly count
     const entryCountResult = await pool.query(
       'SELECT COUNT(*) as count FROM log_entries WHERE log_file_id = $1',
       [fileId]
     );
 
+    const anomalyCountResult = await pool.query(
+      'SELECT COUNT(*) as count FROM log_entries WHERE log_file_id = $1 AND is_anomaly = true',
+      [fileId]
+    );
+
     const entryCount = parseInt(entryCountResult.rows[0].count);
+    const anomalyCount = parseInt(anomalyCountResult.rows[0].count);
 
     res.json({
       id: file.id,
@@ -193,7 +207,8 @@ router.get('/:fileId', async (req, res) => {
       logType: file.log_type,
       uploadDate: file.upload_date,
       processingStatus: file.processing_status,
-      entryCount
+      entryCount,
+      anomalyCount
     });
   } catch (error) {
     logger.error('Failed to fetch file details:', error);

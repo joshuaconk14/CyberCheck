@@ -20,6 +20,7 @@ interface AnalysisDashboardProps {
 
 interface AnalysisSession {
   id: string
+  logFileId: number
   summary: string
   totalEntries: number
   anomalyCount: number
@@ -215,7 +216,7 @@ export function AnalysisDashboard({ files }: AnalysisDashboardProps) {
                       </span>
                     </div>
                     <Link
-                      href={`/analysis/${session.id}`}
+                      href={`/analysis/${session.logFileId}?action=view`}
                       className="btn-outline text-sm"
                     >
                       View Details

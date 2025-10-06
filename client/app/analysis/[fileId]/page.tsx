@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { analysisAPI, uploadAPI } from '@/lib/api'
@@ -50,8 +50,11 @@ export default function AnalysisPage() {
   const params = useParams()
   const router = useRouter()
   const fileId = params.fileId as string
+  const searchParams = useSearchParams()
+  const action = searchParams.get('action') || 'view' // Default to 'view' mode
   
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [timelineLoaded, setTimelineLoaded] = useState(false)
   const [fileDetails, setFileDetails] = useState<FileDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
@@ -60,7 +63,12 @@ export default function AnalysisPage() {
   useEffect(() => {
     loadFileDetails()
     loadAnalysisResults()
-  }, [fileId])
+    
+    // If action is 'analyze', automatically run analysis
+    if (action === 'analyze') {
+      runAnalysis()
+    }
+  }, [fileId, action])
 
   const loadFileDetails = async () => {
     try {
@@ -70,6 +78,7 @@ export default function AnalysisPage() {
         ...details,
         entryCount: details.entryCount || 0
       })
+      console.log('File details loaded:', details) // Debug log
     } catch (error) {
       console.error('Failed to load file details:', error)
     }
@@ -83,15 +92,19 @@ export default function AnalysisPage() {
         // Get the latest analysis
         const latestAnalysis = results.analyses[0]
         console.log('Timeline data:', results.timeline) // Debug log
+        console.log('Detailed anomalies:', latestAnalysis.detailed_anomalies) // Debug log
+        
         setAnalysisResult({
           sessionId: latestAnalysis.id,
           analysis: {
-            anomalies: results.anomalies || [],
-            summary: latestAnalysis.summary,
-            confidence: 0.8, // Default confidence
+            anomalies: latestAnalysis.detailed_anomalies || results.anomalies || [],
+            summary: latestAnalysis.summary || 'No summary available',
+            confidence: latestAnalysis.confidence || 0.8,
             patterns: {},
             timeline: results.timeline || [],
-            recommendations: []
+            recommendations: latestAnalysis.recommendations ? 
+              (typeof latestAnalysis.recommendations === 'string' ? 
+                JSON.parse(latestAnalysis.recommendations) : latestAnalysis.recommendations) : []
           },
           fileInfo: fileDetails || {
             id: parseInt(fileId),
@@ -101,6 +114,9 @@ export default function AnalysisPage() {
           },
           analyzedAt: latestAnalysis.analysis_date
         })
+        
+        // Set timeline as loaded after data is set
+        setTimelineLoaded(true)
       }
     } catch (error) {
       console.error('Failed to load analysis results:', error)
@@ -111,9 +127,12 @@ export default function AnalysisPage() {
 
   const runAnalysis = async () => {
     setAnalyzing(true)
+    setTimelineLoaded(false) // Reset timeline loading state
     try {
       const result = await analysisAPI.analyzeFile(parseInt(fileId))
       setAnalysisResult(result)
+      // Reload analysis results to get complete data including timeline
+      await loadAnalysisResults()
     } catch (error) {
       console.error('Analysis failed:', error)
       alert('Analysis failed. Please try again.')
@@ -236,7 +255,7 @@ export default function AnalysisPage() {
                             Total Entries
                           </dt>
                           <dd className="text-lg font-medium text-gray-900">
-                            {analysisResult.analysis.timeline.reduce((sum, t) => sum + t.total_requests, 0).toLocaleString()}
+                            {fileDetails?.entryCount || analysisResult.analysis.timeline.reduce((sum, t) => sum + (t.totalRequests || t.total_requests || 0), 0) || 0}
                           </dd>
                         </dl>
                       </div>
@@ -306,46 +325,70 @@ export default function AnalysisPage() {
               </div>
 
               {/* Timeline Chart */}
-              {analysisResult.analysis.timeline.length > 0 && (
+              {timelineLoaded && analysisResult.analysis.timeline && analysisResult.analysis.timeline.length > 0 && (
                 <div className="bg-white shadow rounded-lg">
                   <div className="px-6 py-4 border-b border-gray-200">
                     <h3 className="text-lg font-medium text-gray-900">Activity Timeline</h3>
                   </div>
                   <div className="p-6">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={analysisResult.analysis.timeline}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="hour" 
-                          tickFormatter={(value) => {
-                            try {
-                              return new Date(value).toLocaleTimeString()
-                            } catch (error) {
-                              console.error('Date formatting error:', error, 'Value:', value)
-                              return 'Invalid Date'
-                            }
-                          }}
-                        />
-                        <YAxis />
-                        <Tooltip 
-                          labelFormatter={(value) => new Date(value).toLocaleString()}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="totalRequests" 
-                          stroke="#3b82f6" 
-                          strokeWidth={2}
-                          name="Total Requests"
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="anomalyCount" 
-                          stroke="#ef4444" 
-                          strokeWidth={2}
-                          name="Anomalies"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {analysisResult.analysis.timeline && analysisResult.analysis.timeline.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={analysisResult.analysis.timeline}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="hour" 
+                            tickFormatter={(value) => {
+                              if (!value) return '';
+                              try {
+                                const date = new Date(value);
+                                if (isNaN(date.getTime())) {
+                                  console.error('Invalid date value:', value);
+                                  return '';
+                                }
+                                return date.toLocaleTimeString();
+                              } catch (error) {
+                                console.error('Date formatting error:', error, 'Value:', value);
+                                return '';
+                              }
+                            }}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            labelFormatter={(value) => {
+                              if (!value) return '';
+                              try {
+                                const date = new Date(value);
+                                if (isNaN(date.getTime())) return 'Invalid Date';
+                                return date.toLocaleString();
+                              } catch (error) {
+                                return 'Invalid Date';
+                              }
+                            }}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="totalRequests" 
+                            stroke="#3b82f6" 
+                            strokeWidth={2}
+                            name="Total Requests"
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="anomalyCount" 
+                            stroke="#ef4444" 
+                            strokeWidth={2}
+                            name="Anomalies"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-[300px] text-gray-500">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                          <p>Loading timeline data...</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -391,23 +434,24 @@ export default function AnalysisPage() {
                   
                   {showAnomalies && (
                     <div className="divide-y divide-gray-200">
-                      {analysisResult.analysis.anomalies.map((anomaly, index) => (
+                      {analysisResult.analysis.anomalies && analysisResult.analysis.anomalies.length > 0 ? (
+                        analysisResult.analysis.anomalies.map((anomaly, index) => (
                         <div key={index} className="p-6">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-2">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getSeverityColor(anomaly.severity || 'medium')}`}>
-                                  {anomaly.type.replace('_', ' ').toUpperCase()}
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getSeverityColor(anomaly?.severity || 'medium')}`}>
+                                  {anomaly?.type ? anomaly.type.replace('_', ' ').toUpperCase() : 'UNKNOWN'}
                                 </span>
                                 <span className="text-sm text-gray-500">
-                                  Confidence: {(anomaly.confidence * 100).toFixed(0)}%
+                                  Confidence: {anomaly?.confidence ? (anomaly.confidence * 100).toFixed(0) : 0}%
                                 </span>
                               </div>
                               <h4 className="text-sm font-medium text-gray-900 mb-1">
-                                {anomaly.description}
+                                {anomaly?.description || 'Anomaly detected'}
                               </h4>
                               <p className="text-sm text-gray-600 mb-2">
-                                {anomaly.reason}
+                                {anomaly?.reason || anomaly?.anomaly_reason || 'No additional details available'}
                               </p>
                               {anomaly.affected_ips && anomaly.affected_ips.length > 0 && (
                                 <div className="text-xs text-gray-500">
@@ -417,14 +461,19 @@ export default function AnalysisPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                      ))
+                      ) : (
+                        <div className="p-6 text-center text-gray-500">
+                          No anomalies found in this analysis.
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
 
               {/* Recommendations */}
-              {analysisResult.analysis.recommendations.length > 0 && (
+              {analysisResult.analysis.recommendations && analysisResult.analysis.recommendations.length > 0 && (
                 <div className="bg-white shadow rounded-lg">
                   <div className="px-6 py-4 border-b border-gray-200">
                     <h3 className="text-lg font-medium text-gray-900">Recommendations</h3>

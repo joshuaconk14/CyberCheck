@@ -190,11 +190,11 @@ class AnomalyDetectionService {
       const prompt = this.buildAnalysisPrompt(sampleEntries, statisticalAnomalies.patterns);
       
       const completion = await this.openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo",
         messages: [
           {
             role: "system",
-            content: "You are a cybersecurity expert analyzing web proxy logs. Identify potential security threats, anomalies, and suspicious activities. Provide confidence scores (0-1) and clear explanations."
+            content: "You are a cybersecurity expert analyzing web proxy logs. Identify potential security threats, anomalies, and suspicious activities. Provide confidence scores (0-1), clear explanations, and detailed actionable recommendations. Focus on providing comprehensive security guidance with specific mitigation strategies."
           },
           {
             role: "user",
@@ -202,7 +202,7 @@ class AnomalyDetectionService {
           }
         ],
         temperature: 0.3,
-        max_tokens: 2000
+        max_tokens: 4000
       });
 
       const aiResponse = completion.choices[0].message.content;
@@ -291,21 +291,35 @@ Please identify:
 
 Provide your response in JSON format:
 {
-  "summary": "Brief summary of findings",
+  "summary": "Comprehensive summary of security findings and overall risk assessment",
   "anomalies": [
     {
       "type": "anomaly_type",
-      "description": "Description of the anomaly",
+      "description": "Detailed description of the anomaly",
       "confidence": 0.85,
-      "reason": "Explanation of why this is anomalous",
+      "reason": "Detailed explanation of why this is anomalous and potential impact",
       "severity": "high|medium|low",
       "affected_ips": ["ip1", "ip2"],
-      "recommendations": ["action1", "action2"]
+      "recommendations": ["specific action1", "specific action2"]
     }
   ],
   "confidence": 0.8,
-  "recommendations": ["general recommendations"]
+  "recommendations": [
+    "Detailed actionable security recommendations",
+    "Specific mitigation strategies",
+    "Monitoring and alerting improvements",
+    "Policy and configuration changes",
+    "Incident response considerations"
+  ]
 }
+
+IMPORTANT: Provide comprehensive, detailed recommendations that include:
+- Specific technical actions to take
+- Configuration changes needed
+- Monitoring improvements
+- Policy updates
+- Incident response steps
+- Long-term security improvements
 `;
   }
 

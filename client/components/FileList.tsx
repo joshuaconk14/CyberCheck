@@ -160,7 +160,7 @@ export function FileList({ files, loading, onRefresh }: FileListProps) {
                   <div className="flex items-center space-x-2">
                     {file.processingStatus === 'completed' && (
                       <Link
-                        href={`/analysis/${file.id}`}
+                        href={`/analysis/${file.id}?action=analyze`}
                         className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200"
                       >
                         <BarChart3 className="h-4 w-4 mr-1" />
