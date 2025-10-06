@@ -7,7 +7,7 @@ const connectDB = async () => {
   try {
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: false // Disable SSL for Docker containers
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false // Disable SSL for Docker containers
     });
 
     // Test connection
