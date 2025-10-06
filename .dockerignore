@@ -19,8 +19,8 @@ docker-compose.yml
 Dockerfile
 
 # Package management
-server/package-lock.json
-client/package-lock.json
+!server/package-lock.json
+!client/package-lock.json
 yarn.lock
 
 # Logs (since you're mounting logs as volumes)
