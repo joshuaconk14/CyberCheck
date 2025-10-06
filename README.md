@@ -5,11 +5,15 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 ## 🚀 Features
 
 - **Multi-Log Format Support**: Currently supports Cloudflare One logs with extensible architecture for future formats (Palo Alto Networks, Cisco Umbrella)
-- **AI-Powered Anomaly Detection**: Uses OpenAI GPT models to identify suspicious patterns and security threats
+- **AI-Powered Anomaly Detection**: Uses OpenAI GPT-3.5-turbo models to identify suspicious patterns and security threats
 - **Real-time Analysis**: Fast processing with confidence scoring and detailed explanations
 - **Interactive Dashboard**: Modern React interface with charts, timelines, and detailed analysis views
 - **User Authentication**: Secure JWT-based authentication with user management
-- **File Upload & Management**: Drag-and-drop interface for log file uploads
+- **Smart File Upload**: Drag-and-drop interface with mandatory file naming to prevent duplicates
+- **Comprehensive Analysis Persistence**: Complete analysis results saved and retrievable
+- **Advanced Timeline Visualization**: Activity charts with proper date handling and loading states
+- **Detailed Anomaly Tracking**: Individual log entry marking with anomaly scores and reasons
+- **Enhanced Recommendations**: Comprehensive AI-generated security recommendations
 - **Threat Intelligence**: Identifies DDoS attacks, scanning attempts, data exfiltration, and more
 
 ## 🏗️ Architecture
@@ -17,9 +21,10 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 ### Backend (Node.js/Express)
 - **Authentication**: JWT-based user authentication with bcrypt password hashing
 - **Log Parsing**: Extensible parser factory supporting multiple log formats
-- **AI Analysis**: OpenAI GPT-4 integration for anomaly detection
-- **Database**: PostgreSQL with optimized indexes for log storage
-- **File Management**: Multer-based file upload with validation
+- **AI Analysis**: OpenAI GPT-3.5-turbo integration for anomaly detection
+- **Database**: PostgreSQL with optimized indexes and anomaly details tracking
+- **File Management**: Multer-based file upload with validation and unique naming
+- **Rate Limiting**: Configurable API rate limiting (200 requests/minute)
 
 ### Frontend (Next.js/TypeScript)
 - **Modern UI**: Tailwind CSS with responsive design
@@ -29,15 +34,16 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 
 ### Database Schema
 - **Users**: Authentication and profile management
-- **Log Files**: Metadata for uploaded files
-- **Log Entries**: Parsed log data with anomaly flags
-- **Analysis Sessions**: AI analysis results and summaries
+- **Log Files**: Metadata for uploaded files with entry and anomaly counts
+- **Log Entries**: Parsed log data with anomaly flags, scores, and reasons
+- **Analysis Sessions**: AI analysis results, summaries, and confidence scores
+- **Anomaly Details**: Detailed anomaly information with types, descriptions, and metadata
 
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
 - **Backend**: Node.js, Express.js, PostgreSQL
-- **AI/ML**: OpenAI GPT-4 API
+- **AI/ML**: OpenAI GPT-3.5-turbo API
 - **Authentication**: JWT, bcryptjs
 - **File Upload**: Multer, react-dropzone
 - **Charts**: Recharts
@@ -62,11 +68,24 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 
 2. **Set up environment variables**
    ```bash
-   cp server/env.example server/.env
+   # Create .env file in the root directory
+   touch .env
    ```
-   Edit `server/.env` and add your OpenAI API key:
-   ```
+   Edit `.env` and add your configuration:
+   ```env
+   # Database
+   DATABASE_URL=postgresql://logapp_user:logapp_password@postgres:5432/logapp_db
+   
+   # Authentication
+   JWT_SECRET=your-super-secret-jwt-key-here
+   
+   # OpenAI API
    OPENAI_API_KEY=your-openai-api-key-here
+   
+   # Server Configuration
+   PORT=3001
+   NODE_ENV=production
+   CLIENT_URL=http://localhost:3000
    ```
 
 3. **Start the application**
@@ -77,7 +96,7 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 4. **Access the application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:3001
-   - Database: localhost:5432
+   - Database: localhost:5433 (mapped to container port 5432)
 
 ### Option 2: Local Development
 
@@ -93,14 +112,57 @@ A full-stack web application for analyzing cybersecurity logs with AI-powered an
 
 3. **Configure environment variables**
    ```bash
-   cp server/env.example server/.env
+   # Create .env file in the root directory
+   touch .env
    ```
-   Update the database URL and add your OpenAI API key.
+   Edit `.env` and configure your local settings:
+   ```env
+   # Database (update with your local PostgreSQL credentials)
+   DATABASE_URL=postgresql://username:password@localhost:5432/logapp_db
+   
+   # Authentication
+   JWT_SECRET=your-super-secret-jwt-key-here
+   
+   # OpenAI API
+   OPENAI_API_KEY=your-openai-api-key-here
+   
+   # Server Configuration
+   PORT=3001
+   NODE_ENV=development
+   CLIENT_URL=http://localhost:3000
+   ```
 
 4. **Start the development servers**
    ```bash
-   npm run dev
+   # Start backend
+   cd server && npm start
+   
+   # In another terminal, start frontend
+   cd client && npm run dev
    ```
+
+### Option 3: Docker Development Mode
+
+For development with hot reloading:
+
+1. **Set up environment variables** (same as Docker Compose)
+2. **Start PostgreSQL only**
+   ```bash
+   docker-compose up -d postgres
+   ```
+3. **Run backend in Docker**
+   ```bash
+   docker-compose up backend
+   ```
+4. **Run frontend locally with hot reloading**
+   ```bash
+   cd client && npm run dev
+   ```
+
+This setup allows for:
+- Hot reloading of frontend changes
+- Backend running in Docker with database access
+- Easy debugging and development workflow
 
 ## 📊 AI Usage Documentation
 
@@ -116,10 +178,11 @@ The application uses a two-stage analysis approach:
    - URL pattern analysis
 
 2. **AI Analysis**:
-   - OpenAI GPT-4 processes suspicious entries
+   - OpenAI GPT-3.5-turbo processes suspicious entries
    - Provides confidence scores (0-1)
    - Generates detailed explanations
-   - Offers security recommendations
+   - Offers comprehensive security recommendations
+   - Saves complete analysis results to database
 
 ### AI Model Integration
 
@@ -127,8 +190,8 @@ The application uses a two-stage analysis approach:
 
 **Key Functions**:
 - `analyzeAnomalies()`: Main analysis orchestration
-- `performAIAnalysis()`: OpenAI GPT-4 integration
-- `buildAnalysisPrompt()`: Structured prompt creation
+- `performAIAnalysis()`: OpenAI GPT-3.5-turbo integration
+- `buildAnalysisPrompt()`: Structured prompt creation with enhanced recommendations
 - `parseAIResponse()`: Response parsing and validation
 
 **Prompt Engineering**:
@@ -167,7 +230,7 @@ LogApp_TenexAI/
 
 ### Environment Variables
 
-**Backend** (`server/.env`):
+**Backend** (`.env` in root directory):
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/logapp_db
 JWT_SECRET=your-super-secret-jwt-key
@@ -198,16 +261,16 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 ### Analysis
 - `POST /api/analysis/analyze/:fileId` - Run AI analysis
-- `GET /api/analysis/results/:fileId` - Get analysis results
-- `GET /api/analysis/summary/:fileId` - Get summary statistics
+- `GET /api/analysis/results/:fileId` - Get analysis results with timeline
 - `GET /api/analysis/sessions` - List analysis sessions
 
 ## 🧪 Testing
 
-Use the provided sample Cloudflare One log file:
+Use the provided sample Cloudflare One log files:
 ```bash
-# Upload the sample file through the web interface
+# Upload the sample files through the web interface
 # Located at: sample-logs/cloudflare-one-sample.jsonl
+# Also available: test-logs.jsonl for comprehensive testing
 ```
 
 The sample contains:
@@ -215,6 +278,15 @@ The sample contains:
 - Suspicious user agents (curl, sqlmap)
 - Blocked requests from different countries
 - High-frequency requests from single IPs
+- Various HTTP status codes for testing anomaly detection
+
+### Testing Features
+1. **File Upload**: Test with different file formats (.jsonl, .json, .txt, .log, .csv)
+2. **File Naming**: Verify mandatory naming step prevents duplicates
+3. **Analysis**: Run analysis and verify anomaly detection
+4. **Timeline**: Check activity timeline displays correctly
+5. **Persistence**: Verify analysis results persist when viewing details
+6. **Button Functionality**: Test "Analyze" vs "View Details" button behavior
 
 ## 🚀 Deployment
 
@@ -278,23 +350,20 @@ For questions or issues:
 
 3. **File Upload Issues**
    - Check file size limits (10MB max)
-   - Verify file format is supported
+   - Verify file format is supported (.txt, .log, .csv, .json, .jsonl)
    - Ensure uploads directory exists
+   - Complete the mandatory file naming step
 
 4. **Frontend Build Errors**
    - Clear Next.js cache: `rm -rf .next`
    - Reinstall dependencies: `npm install`
    - Check Node.js version compatibility
 
-## 🎯 Future Enhancements
+5. **Analysis Display Issues**
+   - Timeline not showing dates: Hard refresh browser or restart frontend
+   - Analysis results not persisting: Check database connection and anomaly_details table
+   - "NaN" in entry counts: Verify log_entries table has data for the file
 
-- **Additional Log Formats**: Palo Alto Networks, Cisco Umbrella, Fortinet
-- **Real-time Processing**: WebSocket-based live log analysis
-- **Advanced Analytics**: Machine learning models for threat prediction
-- **Integration APIs**: SIEM platform integrations
-- **Multi-tenant Support**: Organization-level user management
-- **Advanced Reporting**: PDF/Excel export capabilities
-
----
-
-Built with ❤️ for cybersecurity professionals. Stay secure! 🛡️
+6. **Rate Limiting Issues**
+   - 429 Too Many Requests: Wait for rate limit reset (200 requests/minute)
+   - Restart backend container to reset in-memory rate limit counter
