@@ -61,6 +61,8 @@ export interface LogFile {
   logType: string
   uploadDate: string
   processingStatus: string
+  entryCount: number
+  anomalyCount: number
 }
 
 export interface LogEntry {
