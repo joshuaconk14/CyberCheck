@@ -264,6 +264,29 @@ export function FileUpload({ onFileUploaded }: FileUploadProps) {
           <p>Maximum file size: 10MB</p>
         </div>
       </div>
+
+      {/* Sample Logs Info */}
+      <div className="bg-blue-50 rounded-md p-4 border border-blue-200">
+        <h3 className="text-sm font-medium text-blue-900 mb-2">Don't have log files to test?</h3>
+        <p className="text-sm text-blue-700 mb-2">
+          If you don't have a Cloudflare One account or your own logs, you can download sample log files from our GitHub repository to test the application.
+        </p>
+        <a 
+          href="https://github.com/joshuaconk14/CyberCheck/tree/main/sample-logs" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          <FileIcon className="h-4 w-4 mr-1" />
+          View sample logs on GitHub
+          <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+        <p className="text-xs text-blue-600 mt-2">
+          Sample logs include normal traffic, DDoS attacks, SQL injection attempts, bot scanners, brute force attacks, and more.
+        </p>
+      </div>
     </div>
   )
 }
