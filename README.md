@@ -166,6 +166,14 @@ This setup allows for:
 
 ## 📊 AI Usage Documentation
 
+
+### How We Use AI/LLMs
+
+**AI Model**: OpenAI GPT-3.5-turbo  
+**Purpose**: Analyze log entries to identify security threats and generate actionable recommendations  
+**Implementation Location**: `server/services/AnomalyDetectionService.js`
+
+
 ### Anomaly Detection Process
 
 The application uses a two-stage analysis approach:
